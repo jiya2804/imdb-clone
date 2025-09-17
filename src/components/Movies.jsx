@@ -12,24 +12,19 @@ function Movies() {
     JSON.parse(localStorage.getItem("favorites"))?.map(m => m.id) || []
   );
 
-  // API request
   useEffect(() => {
     axios
-      .get(
-        `https://api.themoviedb.org/3/trending/all/week?api_key=565dda78aae2b75fafddbc4320a33b38&page=${pageNum}`
-      )
-      .then((res) => setMovies(res.data.results));
+      .get(`https://api.themoviedb.org/3/trending/all/week?api_key=565dda78aae2b75fafddbc4320a33b38&page=${pageNum}`)
+      .then(res => setMovies(res.data.results));
   }, [pageNum]);
 
-  // Pagination
   const onPrev = () => pageNum > 1 && setPage(pageNum - 1);
   const onNext = () => setPage(pageNum + 1);
 
   const showEmoji = (id) => setHovered(id);
   const hideEmoji = () => setHovered("");
 
-  // Add/remove favourites
-  const addEmoji = (movie) => {
+  const addToFav = (movie) => {
     let favs = JSON.parse(localStorage.getItem("favorites")) || [];
     if (!favs.find(m => m.id === movie.id)) {
       favs.push(movie);
@@ -39,9 +34,9 @@ function Movies() {
     }
   };
 
-  const removeEmoji = (movie) => {
+  const removeFromFav = (movie) => {
     let favs = JSON.parse(localStorage.getItem("favorites")) || [];
-    favs = favs.filter((m) => m.id !== movie.id);
+    favs = favs.filter(m => m.id !== movie.id);
     localStorage.setItem("favorites", JSON.stringify(favs));
     setFavourites(favs.map(m => m.id));
     window.dispatchEvent(new Event("favoritesUpdated"));
@@ -54,25 +49,23 @@ function Movies() {
         {movies.length === 0 ? (
           <Oval height="80" width="80" radius="9" color="gray" secondaryColor="gray" ariaLabel="loading" />
         ) : (
-          movies.map((movie) => (
+          movies.map(movie => (
             <Link key={movie.id} to={`/movie/${movie.id}`}>
               <div
                 onMouseOver={() => showEmoji(movie.id)}
                 onMouseLeave={hideEmoji}
                 className="bg-center bg-cover w-[160px] h-[30vh] md:h-[40vh] md:w-[180px] m-4 rounded-xl hover:scale-110 duration-300 flex items-end relative"
-                style={{
-                  backgroundImage: `url(https://image.tmdb.org/t/p/original/${movie.poster_path})`,
-                }}
+                style={{ backgroundImage: `url(https://image.tmdb.org/t/p/original/${movie.poster_path})` }}
               >
                 <div
                   className="p-2 bg-gray-900 absolute top-2 right-2 rounded-xl"
                   style={{ display: hovered === movie.id ? "block" : "none" }}
-                  onClick={(e) => e.preventDefault()}
+                  onClick={(e) => e.preventDefault()} // stop link click
                 >
                   {favourites.includes(movie.id) ? (
-                    <div className="text-2xl" onClick={() => removeEmoji(movie)}>❌</div>
+                    <div className="text-2xl" onClick={() => removeFromFav(movie)}>❌</div>
                   ) : (
-                    <div className="text-2xl" onClick={() => addEmoji(movie)}>😍</div>
+                    <div className="text-2xl" onClick={() => addToFav(movie)}>😍</div>
                   )}
                 </div>
                 <div className="font-bold text-white bg-gray-900 bg-opacity-60 p-2 text-center w-full rounded-b-xl">
