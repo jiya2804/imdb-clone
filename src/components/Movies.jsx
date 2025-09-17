@@ -5,80 +5,77 @@ import { Oval } from "react-loader-spinner";
 import { Link } from "react-router-dom";
 
 function Movies() {
-    let [movies, setMovies] = useState([]);
-    let [pageNum, setPage] = useState(1);
-    let [hovered, setHovered] = useState("");
-    let [favourites, setFavorites] = useState([]);
+    const [movies, setMovies] = useState([]);
+    const [pageNum, setPage] = useState(1);
+    const [hovered, setHovered] = useState("");
+    const [favourites, setFavourites] = useState(() => JSON.parse(localStorage.getItem("favorites")) || []);
 
-    /* making api request */
+    /* Fetch trending movies */
     useEffect(() => {
-        (function () {
-            axios
-                .get("https://api.themoviedb.org/3/trending/all/week?api_key=565dda78aae2b75fafddbc4320a33b38&page=" + pageNum)
-                .then((res) => {
-                    setMovies(res.data.results);
-                })
-        })()
+        axios
+            .get(`https://api.themoviedb.org/3/trending/all/week?api_key=565dda78aae2b75fafddbc4320a33b38&page=${pageNum}`)
+            .then(res => setMovies(res.data.results))
+            .catch(err => console.error(err));
     }, [pageNum]);
 
     /* Pagination handlers */
     const onPrev = () => { if (pageNum > 1) setPage(pageNum - 1); }
     const onNext = () => { setPage(pageNum + 1); }
 
-    /* emoji show and hide on hover */
-    const showEmoji = (id) => { setHovered(id); }
-    const hideEmoji = () => { setHovered(""); }
+    /* Hover handlers */
+    const showEmoji = (id) => setHovered(id);
+    const hideEmoji = () => setHovered("");
 
-    /* adding / removing emojis to fav */
-    const addEmoji = (id) => {
-        const newFav = [...favourites, id];
-        setFavorites(newFav);
+    /* Add / Remove favorites */
+    const addToFavourites = (movie) => {
+        const exists = favourites.some(fav => fav.id === movie.id);
+        if (!exists) {
+            const newFav = [...favourites, movie];
+            setFavourites(newFav);
+            localStorage.setItem("favorites", JSON.stringify(newFav));
+
+            // notify Favourites page to refresh
+            window.dispatchEvent(new Event("favoritesUpdated"));
+        }
     }
-    const removeEmoji = (id) => {
-        const filteredFav = favourites.filter(elem => elem != id);
-        setFavorites(filteredFav);
+
+    const removeFromFavourites = (movie) => {
+        const newFav = favourites.filter(fav => fav.id !== movie.id);
+        setFavourites(newFav);
+        localStorage.setItem("favorites", JSON.stringify(newFav));
+        window.dispatchEvent(new Event("favoritesUpdated"));
     }
 
     return (
         <div className="mt-8">
             <div className="mb-8 font-bold text-2xl text-center">Trending Movies</div>
             <div className="flex flex-wrap justify-center">
-                {movies.length === 0 ? 
-                    <Oval height="80" width="80" radius="9" color="gray" secondaryColor='gray' ariaLabel="loading" /> 
-                    : movies.map((movie) => {
-                        return (
-                            <Link key={movie.id} to={`/movie/${movie.id}`}>
+                {movies.length === 0 ?
+                    <Oval height="80" width="80" radius="9" color="gray" secondaryColor='gray' ariaLabel="loading" /> :
+                    movies.map((movie) => (
+                        <Link key={movie.id} to={`/movie/${movie.id}`} state={{ media_type: movie.media_type }}>
+                            <div
+                                onMouseOver={() => showEmoji(movie.id)}
+                                onMouseLeave={hideEmoji}
+                                className="bg-center bg-cover w-[160px] h-[30vh] md:h-[40vh] md:w-[180px] m-4 rounded-xl hover:scale-110 duration-300 flex items-end relative"
+                                style={{ backgroundImage: `url(https://image.tmdb.org/t/p/original/${movie.poster_path})` }}
+                            >
                                 <div
-                                    onMouseOver={() => { showEmoji(movie.id) }}
-                                    onMouseLeave={() => { hideEmoji(movie.id) }}
-                                    className="
-                                        bg-center bg-cover
-                                        w-[160px] h-[30vh] md:h-[40vh] md:w-[180px]
-                                        m-4 rounded-xl hover:scale-110 duration-300
-                                        flex items-end relative
-                                    "
-                                    style={{
-                                        backgroundImage: `url(https://image.tmdb.org/t/p/original/${movie.poster_path})`
-                                    }}
+                                    className="p-2 bg-gray-900 absolute top-2 right-2 rounded-xl"
+                                    style={{ display: hovered === movie.id ? "block" : "none" }}
+                                    onClick={(e) => e.preventDefault()} // prevent navigation on click
                                 >
-                                    <div
-                                        className="p-2 bg-gray-900 absolute top-2 right-2 rounded-xl"
-                                        style={{ display: hovered == movie.id ? "block" : "none" }}
-                                        onClick={(e) => e.preventDefault()} // prevent Link override for emoji click
-                                    >
-                                        {favourites.includes(movie.id) ? 
-                                            <div className="text-2xl" onClick={() => removeEmoji(movie.id)}>❌</div> 
-                                            : 
-                                            <div className="text-2xl" onClick={() => addEmoji(movie.id)}>😍</div>
-                                        }
-                                    </div>
-                                    <div className="font-bold text-white bg-gray-900 bg-opacity-60 p-2 text-center w-full rounded-b-xl">
-                                        {movie.title || movie.name}
-                                    </div>
+                                    {favourites.some(fav => fav.id === movie.id) ?
+                                        <div className="text-2xl" onClick={() => removeFromFavourites(movie)}>❌</div> :
+                                        <div className="text-2xl" onClick={() => addToFavourites(movie)}>😍</div>
+                                    }
                                 </div>
-                            </Link>
-                        )
-                    })
+                                <div className="font-bold text-white bg-gray-900 bg-opacity-60 p-2 text-center w-full rounded-b-xl">
+                                    {movie.title || movie.name}
+                                </div>
+                            </div>
+                        </Link>
+                    ))
                 }
             </div>
             <Pagination pageNum={pageNum} onPrev={onPrev} onNext={onNext} />
