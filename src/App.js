@@ -4,39 +4,37 @@ import NavBar from './components/NavBar';
 import Banner from './components/Banner';
 import Movies from './components/Movies';
 import Pagination from './components/Pagination';
-import { BrowserRouter, Routes, Route }
-  from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Favourites from './components/Favourites';
 import PageNotFound from './components/PageNotFound';
+import MovieDetails from './components/MovieDetails'; // New import
+
 function App() {
   return (
     <>
       <BrowserRouter>
-        {/* <h1> Hello React ❤️</h1> */}
-        <NavBar></NavBar>
+        <NavBar />
+
         <Routes>
+          {/* Home Page: Banner + Movies */}
           <Route path="/" element={
             <>
-              <Banner></Banner>
-              <Movies></Movies>
+              <Banner />
+              <Movies />
             </>
-          }></Route>
+          } />
 
-          <Route path="/fav" element={
-            <Favourites></Favourites>
-          }></Route>
+          {/* Movie Details Page */}
+          <Route path="/movie/:id" element={<MovieDetails />} />
 
-          <Route path="*"
-            element={<PageNotFound></PageNotFound>}>
-          </Route>
+          {/* Favorites Page */}
+          <Route path="/fav" element={<Favourites />} />
+
+          {/* 404 Page */}
+          <Route path="*" element={<PageNotFound />} />
         </Routes>
-
-
-
       </BrowserRouter>
-
     </>
-
   );
 }
 
