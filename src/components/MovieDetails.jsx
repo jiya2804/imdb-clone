@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { movies } from "./Movies"; // Make sure Movies.jsx me export ho: export const movies = [...]
+import axios from "axios";
 
 const MovieDetails = () => {
   const { id } = useParams();
@@ -8,13 +8,15 @@ const MovieDetails = () => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    // Find movie from existing array
-    const selectedMovie = movies.find(m => m.id === parseInt(id));
-    setMovie(selectedMovie);
+    // Fetch movie details by ID
+    axios
+      .get(`https://api.themoviedb.org/3/movie/${id}?api_key=565dda78aae2b75fafddbc4320a33b38&language=en-US`)
+      .then(res => setMovie(res.data))
+      .catch(err => console.error(err));
 
     // Check if already in favorites
     const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    setIsFavorite(favorites.some(fav => fav.id === selectedMovie.id));
+    setIsFavorite(favorites.some(fav => fav.id === parseInt(id)));
   }, [id]);
 
   const handleAddToFavorites = () => {
@@ -26,14 +28,18 @@ const MovieDetails = () => {
     }
   };
 
-  if (!movie) return <div className="text-center mt-10 text-lg">Movie not found!</div>;
+  if (!movie) return <div className="text-center mt-10 text-lg">Loading movie details...</div>;
 
   return (
     <div className="max-w-4xl mx-auto p-5 mt-10 border rounded-lg shadow-md">
-      <h2 className="text-3xl font-bold mb-5">{movie.title}</h2>
-      <img src={movie.poster} alt={movie.title} className="w-full max-w-md mx-auto mb-5 rounded" />
-      <p className="mb-3">{movie.description}</p>
-      <p className="font-semibold mb-5">Rating: {movie.rating}</p>
+      <h2 className="text-3xl font-bold mb-5">{movie.title || movie.name}</h2>
+      <img 
+        src={`https://image.tmdb.org/t/p/original/${movie.poster_path}`} 
+        alt={movie.title || movie.name} 
+        className="w-full max-w-md mx-auto mb-5 rounded" 
+      />
+      <p className="mb-3">{movie.overview}</p>
+      <p className="font-semibold mb-5">Rating: {movie.vote_average}</p>
       <button
         onClick={handleAddToFavorites}
         disabled={isFavorite}
@@ -46,4 +52,3 @@ const MovieDetails = () => {
 };
 
 export default MovieDetails;
-
