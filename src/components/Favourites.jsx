@@ -2,14 +2,13 @@ import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 
 function Favourites() {
-  const [genres, setGenres] = useState([]);
   const [movies, setMovies] = useState([]);
   const [currGenre, setCurrGenre] = useState("All Genres");
   const [search, setSearch] = useState("");
   const [ratingOrder, setRatingOrder] = useState(0);
   const [popularityOrder, setPopularityOrder] = useState(0);
 
-  // Pagination state
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const moviesPerPage = 2;
 
@@ -20,43 +19,35 @@ function Favourites() {
     10770: "TV", 53: "Thriller", 10752: "War", 37: "Western",
   };
 
-  // Load favourites from localStorage and listen for updates
+  // Load favourites from localStorage on mount
   useEffect(() => {
-    const loadFavourites = () => {
-      const favs = JSON.parse(localStorage.getItem("favorites")) || [];
-      setMovies(favs);
+    const favs = JSON.parse(localStorage.getItem("favorites")) || [];
+    setMovies(favs);
 
-      // collect unique genres
-      const temp = new Set(favs.map(m => genreids[m.genre_ids[0]]));
-      setGenres(["All Genres", ...temp]);
-    }
+    // Listen for updates from Movies page
+    const handleUpdate = () => {
+      const updatedFavs = JSON.parse(localStorage.getItem("favorites")) || [];
+      setMovies(updatedFavs);
+    };
 
-    loadFavourites(); // initial load
-    window.addEventListener("favoritesUpdated", loadFavourites);
-
-    return () => {
-      window.removeEventListener("favoritesUpdated", loadFavourites);
-    }
+    window.addEventListener("favoritesUpdated", handleUpdate);
+    return () => window.removeEventListener("favoritesUpdated", handleUpdate);
   }, []);
 
-  // delete movie
+  // Delete a movie
   const handleDelete = (id) => {
     const newMovies = movies.filter(m => m.id !== id);
     setMovies(newMovies);
     localStorage.setItem("favorites", JSON.stringify(newMovies));
   };
 
-  // filter by genre
+  // Filter, search, sort
   let filteredMovies = currGenre === "All Genres" ? movies : movies.filter(m => genreids[m.genre_ids[0]] === currGenre);
-
-  // search filter
   filteredMovies = filteredMovies.filter(m => m.title.toLowerCase().includes(search.toLowerCase()));
-
-  // sorting
   if (ratingOrder !== 0) filteredMovies.sort((a, b) => ratingOrder === 1 ? a.vote_average - b.vote_average : b.vote_average - a.vote_average);
   if (popularityOrder !== 0) filteredMovies.sort((a, b) => popularityOrder === 1 ? a.popularity - b.popularity : b.popularity - a.popularity);
 
-  // Pagination calculations
+  // Pagination
   const indexOfLastMovie = currentPage * moviesPerPage;
   const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
   const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
@@ -64,9 +55,12 @@ function Favourites() {
   const onPrev = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
   const onNext = () => { if (indexOfLastMovie < filteredMovies.length) setCurrentPage(currentPage + 1); };
 
+  // Generate genres dynamically
+  const genres = ["All Genres", ...new Set(movies.map(m => genreids[m.genre_ids[0]]))];
+
   return (
     <>
-      {/* Genres Filter Buttons */}
+      {/* Genre Buttons */}
       <div className="mt-6 flex space-x-2 justify-center">
         {genres.map((genre, idx) => (
           <button
@@ -79,7 +73,7 @@ function Favourites() {
         ))}
       </div>
 
-      {/* Search Input */}
+      {/* Search */}
       <div className="mt-4 flex justify-center space-x-2">
         <input
           type="text"
