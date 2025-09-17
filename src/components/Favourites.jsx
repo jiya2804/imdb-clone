@@ -1,106 +1,110 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
 
 function Favourites() {
   let [genres, setGenres] = useState([]);
+  let [movies, setMovies] = useState([]);
+  let [currGenre, setCurrGenre] = useState("All Genres");
+  let [search, setSearch] = useState("");
+  let [ratingOrder, setRatingOrder] = useState(0); // 0 = no sort, 1 = asc, -1 = desc
+  let [popularityOrder, setPopularityOrder] = useState(0);
+
   let genreids = {
-    28: 'Action',
-    12: 'Adventure',
-    16: 'Animation',
-    35: 'Comedy',
-    80: 'Crime',
-    99: 'Documentary',
-    18: 'Drama',
-    10751: 'Family',
-    14: 'Fantasy',
-    36: 'History',
-    27: 'Horror',
-    10402: 'Music',
-    9648: 'Mystery',
-    10749: 'Romance',
-    878: 'Sci-Fi',
-    10770: 'TV',
-    53: 'Thriller',
-    10752: 'War',
-    37: 'Western'
+    28: "Action",
+    12: "Adventure",
+    16: "Animation",
+    35: "Comedy",
+    80: "Crime",
+    99: "Documentary",
+    18: "Drama",
+    10751: "Family",
+    14: "Fantasy",
+    36: "History",
+    27: "Horror",
+    10402: "Music",
+    9648: "Mystery",
+    10749: "Romance",
+    878: "Sci-Fi",
+    10770: "TV",
+    53: "Thriller",
+    10752: "War",
+    37: "Western",
   };
 
-  let movies = [
+  // initial movies list
+  let initialMovies = [
     {
-      "adult": false,
-      "backdrop_path": "/ogFIG0fNXEYRQKrpnoRJcXQNX9n.jpg",
-      "id": 619930,
-      "title": "Narvik",
-      "original_language": "no",
-      "original_title": "Kampen om Narvik",
-      "overview": "April, 1940...",
-      "poster_path": "/gU4mmINWUF294Wzi8mqRvi6peMe.jpg",
-      "media_type": "movie",
-      "genre_ids": [10752, 18, 36, 28],
-      "popularity": 321.063,
-      "release_date": "2022-12-25",
-      "video": true,
-      "vote_average": 7.406,
-      "vote_count": 53
+      id: 619930,
+      title: "Narvik",
+      poster_path: "/gU4mmINWUF294Wzi8mqRvi6peMe.jpg",
+      genre_ids: [10752, 18, 36, 28],
+      popularity: 321.063,
+      vote_average: 7.406,
     },
     {
-      "adult": false,
-      "backdrop_path": "/6RCf9jzKxyjblYV4CseayK6bcJo.jpg",
-      "id": 804095,
-      "title": "The Fabelmans",
-      "original_language": "en",
-      "original_title": "The Fabelmans",
-      "overview": "Growing up in post-World War II era Arizona...",
-      "poster_path": "/d2IywyOPS78vEnJvwVqkVRTiNC1.jpg",
-      "media_type": "movie",
-      "genre_ids": [18],
-      "popularity": 163.3,
-      "release_date": "2022-11-11",
-      "video": false,
-      "vote_average": 8.02,
-      "vote_count": 561
+      id: 804095,
+      title: "The Fabelmans",
+      poster_path: "/d2IywyOPS78vEnJvwVqkVRTiNC1.jpg",
+      genre_ids: [18],
+      popularity: 163.3,
+      vote_average: 8.02,
     },
     {
-      "adult": false,
-      "backdrop_path": "/fTLMsF3IVLMcpNqIqJRweGvVwtX.jpg",
-      "id": 1035806,
-      "title": "Detective Knight: Independence",
-      "original_language": "en",
-      "original_title": "Detective Knight: Independence",
-      "overview": "Detective James Knight’s last-minute assignment...",
-      "poster_path": "/jrPKVQGjc3YZXm07OYMriIB47HM.jpg",
-      "media_type": "movie",
-      "genre_ids": [28, 53, 80],
-      "popularity": 119.407,
-      "release_date": "2023-01-20",
-      "video": false,
-      "vote_average": 6.6,
-      "vote_count": 10
+      id: 1035806,
+      title: "Detective Knight: Independence",
+      poster_path: "/jrPKVQGjc3YZXm07OYMriIB47HM.jpg",
+      genre_ids: [28, 53, 80],
+      popularity: 119.407,
+      vote_average: 6.6,
     },
     {
-      "adult": false,
-      "backdrop_path": "/e782pDRAlu4BG0ahd777n8zfPzZ.jpg",
-      "id": 555604,
-      "title": "Guillermo del Toro's Pinocchio",
-      "original_language": "en",
-      "original_title": "Guillermo del Toro's Pinocchio",
-      "overview": "During the rise of fascism in Mussolini's Italy...",
-      "poster_path": "/vx1u0uwxdlhV2MUzj4VlcMB0N6m.jpg",
-      "media_type": "movie",
-      "genre_ids": [16, 14, 18],
-      "popularity": 754.642,
-      "release_date": "2022-11-18",
-      "video": false,
-      "vote_average": 8.354,
-      "vote_count": 1694
-    }
+      id: 555604,
+      title: "Guillermo del Toro's Pinocchio",
+      poster_path: "/vx1u0uwxdlhV2MUzj4VlcMB0N6m.jpg",
+      genre_ids: [16, 14, 18],
+      popularity: 754.642,
+      vote_average: 8.354,
+    },
   ];
 
   useEffect(() => {
-    let temp = movies.map((movie) => genreids[movie.genre_ids[0]]);
+    setMovies(initialMovies);
+
+    // collect unique genres
+    let temp = initialMovies.map((movie) => genreids[movie.genre_ids[0]]);
     temp = new Set(temp);
     setGenres(["All Genres", ...temp]);
   }, []);
+
+  // delete movie
+  const handleDelete = (id) => {
+    let newMovies = movies.filter((m) => m.id !== id);
+    setMovies(newMovies);
+  };
+
+  // filter by genre
+  let filteredMovies = currGenre === "All Genres"
+    ? movies
+    : movies.filter((m) => genreids[m.genre_ids[0]] === currGenre);
+
+  // search filter
+  filteredMovies = filteredMovies.filter((m) =>
+    m.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // sorting by rating
+  if (ratingOrder !== 0) {
+    filteredMovies.sort((a, b) =>
+      ratingOrder === 1 ? a.vote_average - b.vote_average : b.vote_average - a.vote_average
+    );
+  }
+
+  // sorting by popularity
+  if (popularityOrder !== 0) {
+    filteredMovies.sort((a, b) =>
+      popularityOrder === 1 ? a.popularity - b.popularity : b.popularity - a.popularity
+    );
+  }
 
   return (
     <>
@@ -110,7 +114,10 @@ function Favourites() {
           return (
             <button
               key={idx}
-              className="py-1 px-2 bg-gray-400 rounded-lg font-bold text-lg text-white hover:bg-blue-400"
+              className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${
+                currGenre === genre ? "bg-blue-600" : "bg-gray-400 hover:bg-blue-400"
+              }`}
+              onClick={() => setCurrGenre(genre)}
             >
               {genre}
             </button>
@@ -118,17 +125,20 @@ function Favourites() {
         })}
       </div>
 
-      {/* Search + Number Inputs */}
+      {/* Search Input */}
       <div className="mt-4 flex justify-center space-x-2">
         <input
           type="text"
           placeholder="search"
           className="border-2 py-1 px-2 text-center"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <input
           type="number"
           className="border-2 py-1 px-2 text-center"
           value={1}
+          readOnly
         />
       </div>
 
@@ -139,33 +149,26 @@ function Favourites() {
             <tr>
               <th className="px-6 py-4 font-medium text-gray-900">Name</th>
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className="flex">
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
-                    className="mr-2 cursor-pointer"
-                    alt="up"
-                  />
-                  <div>Rating</div>
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
-                    className="ml-2 mr-2"
-                    alt="down"
-                  />
+                <div className="flex items-center">
+                  <span
+                    className="cursor-pointer"
+                    onClick={() => setRatingOrder(ratingOrder === 1 ? -1 : 1)}
+                  >
+                    Rating {ratingOrder === 1 ? "↑" : ratingOrder === -1 ? "↓" : ""}
+                  </span>
                 </div>
               </th>
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className="flex">
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
-                    className="mr-2 cursor-pointer"
-                    alt="up"
-                  />
-                  <div>Popularity</div>
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
-                    className="ml-2 mr-2"
-                    alt="down"
-                  />
+                <div className="flex items-center">
+                  <span
+                    className="cursor-pointer"
+                    onClick={() =>
+                      setPopularityOrder(popularityOrder === 1 ? -1 : 1)
+                    }
+                  >
+                    Popularity{" "}
+                    {popularityOrder === 1 ? "↑" : popularityOrder === -1 ? "↓" : ""}
+                  </span>
                 </div>
               </th>
               <th className="px-6 py-4 font-medium text-gray-900">Genre</th>
@@ -173,7 +176,7 @@ function Favourites() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 border-t border-gray-100">
-            {movies.map((movie) => {
+            {filteredMovies.map((movie) => {
               return (
                 <tr className="hover:bg-gray-50" key={movie.id}>
                   <th className="flex items-center px-6 py-4 font-normal text-gray-900 space-x-2">
@@ -183,7 +186,7 @@ function Favourites() {
                       alt={movie.title}
                     />
                     <div className="font-medium text-gray-700 text-sm">
-                      {movie.title || movie.name}
+                      {movie.title}
                     </div>
                   </th>
                   <td className="px-6 pl-12 py-4">
@@ -193,14 +196,15 @@ function Favourites() {
                     {movie.popularity.toFixed(2)}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-600">
-                        {genreids[movie.genre_ids[0]]}
-                      </span>
-                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-600">
+                      {genreids[movie.genre_ids[0]]}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-red-600 cursor-pointer">
+                    <span
+                      onClick={() => handleDelete(movie.id)}
+                      className="cursor-pointer text-red-600 font-semibold"
+                    >
                       Delete
                     </span>
                   </td>
@@ -218,3 +222,4 @@ function Favourites() {
 }
 
 export default Favourites;
+
