@@ -52,14 +52,18 @@ export default function Favourites() {
   };
 
   // ✅ Build genre list dynamically
-  const genres = [
-    "All Genres",
-    ...new Set(
-      movies
-        .map((m) => genreids[m.genre_ids?.[0]])
-        .filter(Boolean)
-    ),
-  ];
+ // ✅ Base genres you always want to show
+const baseGenres = ["Action", "Comedy", "Drama", "Horror", "Romance"];
+
+// ✅ Merge base + dynamic genres (avoid duplicates)
+const genres = [
+  "All Genres",
+  ...new Set([
+    ...baseGenres,
+    ...movies.map((m) => genreids[m.genre_ids?.[0]]).filter(Boolean),
+  ]),
+];
+
 
   // ✅ Filter by genre
   let filteredMovies =
