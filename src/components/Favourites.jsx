@@ -1,62 +1,182 @@
 import React, { useEffect, useState } from "react";
 import Pagination from "./Pagination";
+import { genreids } from "./genreids"; // <-- make sure this file exists
 
-function Favourites() {
-    const [movies, setMovies] = useState([]);
-    const [currGenre, setCurrGenre] = useState("All Genres");
-    const [search, setSearch] = useState("");
-    const [ratingOrder, setRatingOrder] = useState(0);
-    const [popularityOrder, setPopularityOrder] = useState(0);
-    const [currentPage, setCurrentPage] = useState(1);
-    const moviesPerPage = 2;
+// ✅ Fixer function for old favourites
+function fixOldFavourites() {
+  let favs = JSON.parse(localStorage.getItem("imdb") || "[]");
 
-    const genreids = {
-        28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
-        99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History",
-        27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi",
-        10770: "TV", 53: "Thriller", 10752: "War", 37: "Western",
-    };
+  favs = favs.map((movie) => {
+    // If movie already has genre_ids, keep it
+    if (movie.genre_ids && movie.genre_ids.length > 0) return movie;
 
-    useEffect(() => {
-        const favs = JSON.parse(localStorage.getItem("favorites")) || [];
-        setMovies(favs);
-    }, []);
+    // If genre name exists, try to map it back to ID
+    if (movie.genre && Object.values(genreids).includes(movie.genre)) {
+      const genreKey = Object.keys(genreids).find(
+        (key) => genreids[key] === movie.genre
+      );
+      if (genreKey) {
+        return { ...movie, genre_ids: [parseInt(genreKey)] };
+      }
+    }
 
-    const handleDelete = (id) => {
-        const newMovies = movies.filter(m => m.id !== id);
-        setMovies(newMovies);
-        localStorage.setItem("favorites", JSON.stringify(newMovies));
-    };
+    // Otherwise leave unchanged
+    return movie;
+  });
 
-    let filteredMovies = currGenre === "All Genres" ? movies : movies.filter(m => genreids[m.genre_ids[0]] === currGenre);
-    filteredMovies = filteredMovies.filter(m => m.title.toLowerCase().includes(search.toLowerCase()));
+  localStorage.setItem("imdb", JSON.stringify(favs));
+}
 
-    if (ratingOrder !== 0) filteredMovies.sort((a, b) => ratingOrder === 1 ? a.vote_average - b.vote_average : b.vote_average - a.vote_average);
-    if (popularityOrder !== 0) filteredMovies.sort((a, b) => popularityOrder === 1 ? a.popularity - b.popularity : b.popularity - a.popularity);
+export default function Favourites() {
+  const [movies, setMovies] = useState([]);
+  const [currGenre, setCurrGenre] = useState("All Genres");
+  const [search, setSearch] = useState("");
+  const [currPage, setCurrPage] = useState(1);
 
-    const indexOfLastMovie = currentPage * moviesPerPage;
-    const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
-    const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
+  // ✅ Load and fix favourites on mount
+  useEffect(() => {
+    fixOldFavourites();
+    let fav = JSON.parse(localStorage.getItem("imdb") || "[]");
+    setMovies(fav);
+  }, []);
 
-    const onPrev = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
-    const onNext = () => { if (indexOfLastMovie < filteredMovies.length) setCurrentPage(currentPage + 1); };
+  // ✅ Delete movie from favourites
+  const removeFromFavourites = (movie) => {
+    let updated = movies.filter((m) => m.id !== movie.id);
+    setMovies(updated);
+    localStorage.setItem("imdb", JSON.stringify(updated));
+  };
 
-    return (
-        <>
-            <div className="mt-6 flex space-x-2 justify-center">
-                {["All Genres", ...Object.values(genreids)].map((genre, idx) => (
-                    <button key={idx} className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${currGenre === genre ? "bg-blue-600" : "bg-gray-400 hover:bg-blue-400"}`} onClick={() => { setCurrGenre(genre); setCurrentPage(1); }}>{genre}</button>
-                ))}
-            </div>
+  // ✅ Build genre list dynamically
+  const genres = [
+    "All Genres",
+    ...new Set(
+      movies
+        .map((m) => genreids[m.genre_ids?.[0]]) // safe access
+        .filter(Boolean) // remove invalid
+    ),
+  ];
 
-            <div className="mt-4 flex justify-center space-x-2">
-                <input type="text" placeholder="search" className="border-2 py-1 px-2 text-center" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
-            </div>
+  // ✅ Filter by genre
+  let filteredMovies =
+    currGenre === "All Genres"
+      ? movies
+      : movies.filter((m) => genreids[m.genre_ids?.[0]] === currGenre);
 
-            <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md m-5">
-                <table className="w-full border-collapse bg-white text-left text-sm text-gray-500">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-4 font-medium text-gray-900">Name</th>
-                            <th className="px-6 py-4 font-medium text-gray-900" onClick={() => setRatingOrder(ratingOrder === 1 ? -1 : 1)}>Rating</th>
-                            <th className="px-6 py-4
+  // ✅ Search filter
+  filteredMovies = filteredMovies.filter((m) =>
+    m.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // ✅ Pagination
+  let maxPerPage = 4;
+  let totalPages = Math.ceil(filteredMovies.length / maxPerPage);
+  let startIndex = (currPage - 1) * maxPerPage;
+  let endIndex = startIndex + maxPerPage;
+  let moviesToShow = filteredMovies.slice(startIndex, endIndex);
+
+  return (
+    <div className="p-5">
+      {/* Genre filter buttons */}
+      <div className="flex space-x-2 mb-4">
+        {genres.map((g) => (
+          <button
+            key={g}
+            onClick={() => {
+              setCurrGenre(g);
+              setCurrPage(1); // reset page when switching genre
+            }}
+            className={`px-3 py-1 rounded-lg ${
+              currGenre === g
+                ? "bg-blue-600 text-white"
+                : "bg-gray-300 text-black"
+            }`}
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+
+      {/* Search bar */}
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setCurrPage(1); // reset page when searching
+        }}
+        placeholder="Search..."
+        className="border border-gray-300 px-3 py-2 rounded-lg w-full mb-4"
+      />
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border border-gray-300 p-2">Poster</th>
+              <th className="border border-gray-300 p-2">Title</th>
+              <th className="border border-gray-300 p-2">Genre</th>
+              <th className="border border-gray-300 p-2">Rating</th>
+              <th className="border border-gray-300 p-2">Popularity</th>
+              <th className="border border-gray-300 p-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {moviesToShow.map((movie) => (
+              <tr key={movie.id}>
+                <td className="border border-gray-300 p-2 text-center">
+                  <img
+                    src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                    alt={movie.title}
+                    className="h-20 mx-auto"
+                  />
+                </td>
+                <td className="border border-gray-300 p-2 text-center">
+                  {movie.title}
+                </td>
+                <td className="border border-gray-300 p-2 text-center">
+                  {genreids[movie.genre_ids?.[0]] || "N/A"}
+                </td>
+                <td className="border border-gray-300 p-2 text-center">
+                  {movie.vote_average}
+                </td>
+                <td className="border border-gray-300 p-2 text-center">
+                  {movie.popularity}
+                </td>
+                <td className="border border-gray-300 p-2 text-center">
+                  <button
+                    onClick={() => removeFromFavourites(movie)}
+                    className="bg-red-500 text-white px-2 py-1 rounded-lg"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+
+            {moviesToShow.length === 0 && (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="text-center text-gray-500 p-4 italic"
+                >
+                  No movies found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          currPage={currPage}
+          setCurrPage={setCurrPage}
+          totalPages={totalPages}
+        />
+      )}
+    </div>
+  );
+}
