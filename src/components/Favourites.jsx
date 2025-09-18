@@ -33,6 +33,10 @@ export default function Favourites() {
   const [search, setSearch] = useState("");
   const [currPage, setCurrPage] = useState(1);
 
+  // sorting states
+  const [ratingOrder, setRatingOrder] = useState(0); // 0 = none, 1 = asc, -1 = desc
+  const [popularityOrder, setPopularityOrder] = useState(0);
+
   // ✅ Load and fix favourites on mount
   useEffect(() => {
     fixOldFavourites();
@@ -52,8 +56,8 @@ export default function Favourites() {
     "All Genres",
     ...new Set(
       movies
-        .map((m) => genreids[m.genre_ids?.[0]]) // safe access
-        .filter(Boolean) // remove invalid
+        .map((m) => genreids[m.genre_ids?.[0]])
+        .filter(Boolean)
     ),
   ];
 
@@ -65,8 +69,25 @@ export default function Favourites() {
 
   // ✅ Search filter
   filteredMovies = filteredMovies.filter((m) =>
-    m.title.toLowerCase().includes(search.toLowerCase())
+    (m.title || m.name || "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
+
+  // ✅ Sorting
+  if (ratingOrder !== 0) {
+    filteredMovies = [...filteredMovies].sort((a, b) =>
+      ratingOrder === 1
+        ? a.vote_average - b.vote_average
+        : b.vote_average - a.vote_average
+    );
+  } else if (popularityOrder !== 0) {
+    filteredMovies = [...filteredMovies].sort((a, b) =>
+      popularityOrder === 1
+        ? a.popularity - b.popularity
+        : b.popularity - a.popularity
+    );
+  }
 
   // ✅ Pagination
   let maxPerPage = 4;
@@ -78,13 +99,13 @@ export default function Favourites() {
   return (
     <div className="p-5">
       {/* Genre filter buttons */}
-      <div className="flex space-x-2 mb-4">
+      <div className="flex space-x-2 mb-4 flex-wrap">
         {genres.map((g) => (
           <button
             key={g}
             onClick={() => {
               setCurrGenre(g);
-              setCurrPage(1); // reset page when switching genre
+              setCurrPage(1);
             }}
             className={`px-3 py-1 rounded-lg ${
               currGenre === g
@@ -103,7 +124,7 @@ export default function Favourites() {
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
-          setCurrPage(1); // reset page when searching
+          setCurrPage(1);
         }}
         placeholder="Search..."
         className="border border-gray-300 px-3 py-2 rounded-lg w-full mb-4"
@@ -117,8 +138,25 @@ export default function Favourites() {
               <th className="border border-gray-300 p-2">Poster</th>
               <th className="border border-gray-300 p-2">Title</th>
               <th className="border border-gray-300 p-2">Genre</th>
-              <th className="border border-gray-300 p-2">Rating</th>
-              <th className="border border-gray-300 p-2">Popularity</th>
+              <th
+                className="border border-gray-300 p-2 cursor-pointer"
+                onClick={() => {
+                  setRatingOrder(ratingOrder === 1 ? -1 : 1);
+                  setPopularityOrder(0);
+                }}
+              >
+                Rating {ratingOrder === 1 ? "↑" : ratingOrder === -1 ? "↓" : ""}
+              </th>
+              <th
+                className="border border-gray-300 p-2 cursor-pointer"
+                onClick={() => {
+                  setPopularityOrder(popularityOrder === 1 ? -1 : 1);
+                  setRatingOrder(0);
+                }}
+              >
+                Popularity{" "}
+                {popularityOrder === 1 ? "↑" : popularityOrder === -1 ? "↓" : ""}
+              </th>
               <th className="border border-gray-300 p-2">Action</th>
             </tr>
           </thead>
@@ -127,13 +165,17 @@ export default function Favourites() {
               <tr key={movie.id}>
                 <td className="border border-gray-300 p-2 text-center">
                   <img
-                    src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
-                    alt={movie.title}
+                    src={
+                      movie.poster_path
+                        ? `https://image.tmdb.org/t/p/w200${movie.poster_path}`
+                        : "https://via.placeholder.com/100x150?text=No+Image"
+                    }
+                    alt={movie.title || movie.name}
                     className="h-20 mx-auto"
                   />
                 </td>
                 <td className="border border-gray-300 p-2 text-center">
-                  {movie.title}
+                  {movie.title || movie.name}
                 </td>
                 <td className="border border-gray-300 p-2 text-center">
                   {genreids[movie.genre_ids?.[0]] || "N/A"}
