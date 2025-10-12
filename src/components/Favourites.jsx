@@ -3,8 +3,7 @@ import Pagination from "./Pagination";
 
 function Favourites() {
   let [genres, setGenres] = useState([]);
-  
-  // Movies state for Delete functionality
+  let [selectedGenre, setSelectedGenre] = useState("All Genres"); // New state for filtering
   let [moviesState, setMoviesState] = useState([
     {
       "adult": false,
@@ -13,7 +12,6 @@ function Favourites() {
       "title": "Narvik",
       "original_language": "no",
       "original_title": "Kampen om Narvik",
-      "overview": "April, 1940. The eyes of the world are on Narvik, a small town in northern Norway, a source of the iron ore needed for Hitler's war machine. Through two months of fierce winter warfare, the German leader is dealt with his first defeat.",
       "poster_path": "/gU4mmINWUF294Wzi8mqRvi6peMe.jpg",
       "media_type": "movie",
       "genre_ids": [10752, 18, 36, 28],
@@ -30,7 +28,6 @@ function Favourites() {
       "title": "The Fabelmans",
       "original_language": "en",
       "original_title": "The Fabelmans",
-      "overview": "Growing up in post-World War II era Arizona, young Sammy Fabelman aspires to become a filmmaker as he reaches adolescence, but soon discovers a shattering family secret and explores how the power of films can help him see the truth.",
       "poster_path": "/d2IywyOPS78vEnJvwVqkVRTiNC1.jpg",
       "media_type": "movie",
       "genre_ids": [18],
@@ -47,7 +44,6 @@ function Favourites() {
       "title": "Detective Knight: Independence",
       "original_language": "en",
       "original_title": "Detective Knight: Independence",
-      "overview": "Detective James Knight 's last-minute assignment to the Independence Day shift turns into a race to stop an unbalanced ambulance EMT from imperiling the city's festivities. The misguided vigilante, playing cop with a stolen gun and uniform, has a bank vault full of reasons to put on his own fireworks show... one that will strike dangerously close to Knight's home.",
       "poster_path": "/jrPKVQGjc3YZXm07OYMriIB47HM.jpg",
       "media_type": "movie",
       "genre_ids": [28, 53, 80],
@@ -64,7 +60,6 @@ function Favourites() {
       "title": "Guillermo del Toro's Pinocchio",
       "original_language": "en",
       "original_title": "Guillermo del Toro's Pinocchio",
-      "overview": "During the rise of fascism in Mussolini's Italy, a wooden boy brought magically to life struggles to live up to his father's expectations.",
       "poster_path": "/vx1u0uwxdlhV2MUzj4VlcMB0N6m.jpg",
       "media_type": "movie",
       "genre_ids": [16, 14, 18],
@@ -83,11 +78,38 @@ function Favourites() {
     10770: 'TV', 53: 'Thriller', 10752: 'War', 37: 'Western'
   }
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 2;
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+
+  const handleSort = (key, direction) => {
+    setSortConfig({ key, direction });
+    let sortedMovies = [...moviesState];
+    sortedMovies.sort((a, b) => {
+      if (direction === 'asc') return a[key] - b[key];
+      if (direction === 'desc') return b[key] - a[key];
+      return 0;
+    });
+    setMoviesState(sortedMovies);
+  };
+
   useEffect(() => {
     let temp = moviesState.map((movie) => genreids[movie.genre_ids[0]]);
     temp = new Set(temp);
     setGenres(["All Genres", ...temp]);
   }, [moviesState]);
+
+  // ---------------- Filter by genre ----------------
+  const filteredMovies = selectedGenre === "All Genres"
+    ? moviesState
+    : moviesState.filter(movie => movie.genre_ids.some(id => genreids[id] === selectedGenre));
+
+  const indexOfLastMovie = currentPage * moviesPerPage;
+  const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
+  const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
+
+  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
 
   return (
     <>
@@ -95,7 +117,8 @@ function Favourites() {
         {genres.map((genre) => (
           <button
             key={genre}
-            className='py-1 px-2 bg-gray-400 rounded-lg font-bold text-lg text-white hover:bg-blue-400'
+            className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${selectedGenre === genre ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-400'}`}
+            onClick={() => setSelectedGenre(genre)}
           >
             {genre}
           </button>
@@ -113,17 +136,33 @@ function Favourites() {
             <tr>
               <th className="px-6 py-4 font-medium text-gray-900">Name</th>
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className='flex'>
-                  <img src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png" className="mr-2 cursor-pointer" />
+                <div className='flex items-center'>
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
+                    className="mr-2 cursor-pointer"
+                    onClick={() => handleSort('vote_average', 'asc')}
+                  />
                   <div>Rating</div>
-                  <img src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png" className="ml-2 mr-2" />
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
+                    className="ml-2 mr-2 cursor-pointer"
+                    onClick={() => handleSort('vote_average', 'desc')}
+                  />
                 </div>
               </th>
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className='flex'>
-                  <img src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png" className="mr-2 cursor-pointer" />
+                <div className='flex items-center'>
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
+                    className="mr-2 cursor-pointer"
+                    onClick={() => handleSort('popularity', 'asc')}
+                  />
                   <div>Popularity</div>
-                  <img src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png" className="ml-2 mr-2" />
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
+                    className="ml-2 mr-2 cursor-pointer"
+                    onClick={() => handleSort('popularity', 'desc')}
+                  />
                 </div>
               </th>
               <th className="px-6 py-4 font-medium text-gray-900">Genre</th>
@@ -131,7 +170,7 @@ function Favourites() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 border-t border-gray-100">
-            {moviesState.map((movie) => (
+            {currentMovies.map((movie) => (
               <tr className="hover:bg-gray-50" key={movie.id}>
                 <th className="flex items-center px-6 py-4 font-normal text-gray-900 space-x-2">
                   <img className="h-[6rem] w-[10rem] object-fit" src={`https://image.tmdb.org/t/p/original/${movie.poster_path}`} alt="" />
@@ -158,6 +197,18 @@ function Favourites() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex justify-center space-x-2 mt-4">
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button
+            key={page}
+            className={`px-3 py-1 rounded ${page === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+            onClick={() => setCurrentPage(page)}
+          >
+            {page}
+          </button>
+        ))}
       </div>
 
       <Pagination />
