@@ -3,69 +3,86 @@ import Pagination from "./Pagination";
 
 function Favourites() {
   let [genres, setGenres] = useState([]);
-  let [selectedGenre, setSelectedGenre] = useState("All Genres");
-  let [currentPage, setCurrentPage] = useState(1);
-  const moviesPerPage = 2;
-
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
-
+  let [selectedGenre, setSelectedGenre] = useState("All Genres"); // New state for filtering
   let [moviesState, setMoviesState] = useState([
     {
       "adult": false,
       "backdrop_path": "/ogFIG0fNXEYRQKrpnoRJcXQNX9n.jpg",
       "id": 619930,
       "title": "Narvik",
+      "original_language": "no",
+      "original_title": "Kampen om Narvik",
       "poster_path": "/gU4mmINWUF294Wzi8mqRvi6peMe.jpg",
+      "media_type": "movie",
       "genre_ids": [10752, 18, 36, 28],
       "popularity": 321.063,
+      "release_date": "2022-12-25",
+      "video": true,
       "vote_average": 7.406,
+      "vote_count": 53
     },
     {
       "adult": false,
       "backdrop_path": "/6RCf9jzKxyjblYV4CseayK6bcJo.jpg",
       "id": 804095,
       "title": "The Fabelmans",
+      "original_language": "en",
+      "original_title": "The Fabelmans",
       "poster_path": "/d2IywyOPS78vEnJvwVqkVRTiNC1.jpg",
+      "media_type": "movie",
       "genre_ids": [18],
       "popularity": 163.3,
+      "release_date": "2022-11-11",
+      "video": false,
       "vote_average": 8.02,
+      "vote_count": 561
     },
     {
       "adult": false,
       "backdrop_path": "/fTLMsF3IVLMcpNqIqJRweGvVwtX.jpg",
       "id": 1035806,
       "title": "Detective Knight: Independence",
+      "original_language": "en",
+      "original_title": "Detective Knight: Independence",
       "poster_path": "/jrPKVQGjc3YZXm07OYMriIB47HM.jpg",
+      "media_type": "movie",
       "genre_ids": [28, 53, 80],
       "popularity": 119.407,
+      "release_date": "2023-01-20",
+      "video": false,
       "vote_average": 6.6,
+      "vote_count": 10
     },
     {
       "adult": false,
       "backdrop_path": "/e782pDRAlu4BG0ahd777n8zfPzZ.jpg",
       "id": 555604,
       "title": "Guillermo del Toro's Pinocchio",
+      "original_language": "en",
+      "original_title": "Guillermo del Toro's Pinocchio",
       "poster_path": "/vx1u0uwxdlhV2MUzj4VlcMB0N6m.jpg",
+      "media_type": "movie",
       "genre_ids": [16, 14, 18],
       "popularity": 754.642,
+      "release_date": "2022-11-18",
+      "video": false,
       "vote_average": 8.354,
+      "vote_count": 1694
     }
   ]);
 
-  const genreids = {
+  let genreids = {
     28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
     99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
     27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
     10770: 'TV', 53: 'Thriller', 10752: 'War', 37: 'Western'
-  };
+  }
 
-  useEffect(() => {
-    let temp = moviesState.map((movie) => genreids[movie.genre_ids[0]]);
-    temp = new Set(temp);
-    setGenres(["All Genres", ...temp]);
-  }, [moviesState]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const moviesPerPage = 2;
 
-  // ---------------- Sorting ----------------
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+
   const handleSort = (key, direction) => {
     setSortConfig({ key, direction });
     let sortedMovies = [...moviesState];
@@ -77,46 +94,42 @@ function Favourites() {
     setMoviesState(sortedMovies);
   };
 
-  // ---------------- Genre Filtering ----------------
+  useEffect(() => {
+    let temp = moviesState.map((movie) => genreids[movie.genre_ids[0]]);
+    temp = new Set(temp);
+    setGenres(["All Genres", ...temp]);
+  }, [moviesState]);
+
+  // ---------------- Filter by genre ----------------
   const filteredMovies = selectedGenre === "All Genres"
     ? moviesState
     : moviesState.filter(movie => movie.genre_ids.some(id => genreids[id] === selectedGenre));
 
-  // ---------------- Pagination ----------------
-  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
   const indexOfLastMovie = currentPage * moviesPerPage;
   const indexOfFirstMovie = indexOfLastMovie - moviesPerPage;
   const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
+  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
 
   return (
     <>
-      {/* Genre Buttons */}
       <div className="mt-6 flex space-x-2 justify-center">
         {genres.map((genre) => (
           <button
             key={genre}
             className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${selectedGenre === genre ? 'bg-blue-500' : 'bg-gray-400 hover:bg-blue-400'}`}
-            onClick={() => { setSelectedGenre(genre); setCurrentPage(1); }}
+            onClick={() => setSelectedGenre(genre)}
           >
             {genre}
           </button>
         ))}
       </div>
 
-      {/* Search & Page Number */}
       <div className="mt-4 flex justify-center space-x-2">
         <input type="text" placeholder='search' className="border-2 py-1 px-2 text-center" />
         <input type="number" className="border-2 py-1 px-2 text-center" value={1} />
       </div>
 
-      {/* Movie Table */}
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md m-5">
         <table className="w-full border-collapse bg-white text-left text-sm text-gray-500">
           <thead className="bg-gray-50">
@@ -186,16 +199,7 @@ function Favourites() {
         </table>
       </div>
 
-      {/* Pagination with Next / Previous */}
       <div className="flex justify-center space-x-2 mt-4">
-        <button
-          className="px-3 py-1 rounded bg-gray-200"
-          onClick={handlePrevPage}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
           <button
             key={page}
@@ -205,14 +209,6 @@ function Favourites() {
             {page}
           </button>
         ))}
-
-        <button
-          className="px-3 py-1 rounded bg-gray-200"
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
       </div>
 
       <Pagination />
