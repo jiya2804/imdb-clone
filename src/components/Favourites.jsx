@@ -3,6 +3,8 @@ import Pagination from "./Pagination";
 
 function Favourites() {
   let [genres, setGenres] = useState([]);
+  
+  // Movies state for Delete functionality
   let [moviesState, setMoviesState] = useState([
     {
       "adult": false,
@@ -75,25 +77,10 @@ function Favourites() {
   ]);
 
   let genreids = {
-    28: 'Action',
-    12: 'Adventure',
-    16: 'Animation',
-    35: 'Comedy',
-    80: 'Crime',
-    99: 'Documentary',
-    18: 'Drama',
-    10751: 'Family',
-    14: 'Fantasy',
-    36: 'History',
-    27: 'Horror',
-    10402: 'Music',
-    9648: 'Mystery',
-    10749: 'Romance',
-    878: 'Sci-Fi',
-    10770: 'TV',
-    53: 'Thriller',
-    10752: 'War',
-    37: 'Western'
+    28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+    99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+    27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+    10770: 'TV', 53: 'Thriller', 10752: 'War', 37: 'Western'
   }
 
   useEffect(() => {
@@ -116,16 +103,8 @@ function Favourites() {
       </div>
 
       <div className="mt-4 flex justify-center space-x-2">
-        <input
-          type="text"
-          placeholder='search'
-          className="border-2 py-1 px-2 text-center"
-        />
-        <input
-          type="number"
-          className="border-2 py-1 px-2 text-center"
-          value={1}
-        />
+        <input type="text" placeholder='search' className="border-2 py-1 px-2 text-center" />
+        <input type="number" className="border-2 py-1 px-2 text-center" value={1} />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md m-5">
@@ -155,11 +134,7 @@ function Favourites() {
             {moviesState.map((movie) => (
               <tr className="hover:bg-gray-50" key={movie.id}>
                 <th className="flex items-center px-6 py-4 font-normal text-gray-900 space-x-2">
-                  <img
-                    className="h-[6rem] w-[10rem] object-cover"
-                    src={`https://image.tmdb.org/t/p/original/${movie.poster_path}`}
-                    alt=""
-                  />
+                  <img className="h-[6rem] w-[10rem] object-fit" src={`https://image.tmdb.org/t/p/original/${movie.poster_path}`} alt="" />
                   <div className="font-medium text-gray-700 text-sm">{movie.title || movie.name}</div>
                 </th>
                 <td className="px-6 pl-12 py-4">{movie.vote_average.toFixed(2)}</td>
@@ -173,4 +148,21 @@ function Favourites() {
                 </td>
                 <td className="px-6 py-4">
                   <span
-                    className=
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold text-red-600 cursor-pointer"
+                    onClick={() => setMoviesState(moviesState.filter((m) => m.id !== movie.id))}
+                  >
+                    Delete
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Pagination />
+    </>
+  );
+}
+
+export default Favourites;
