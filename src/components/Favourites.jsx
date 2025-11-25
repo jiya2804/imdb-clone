@@ -1,3 +1,6 @@
+// Favourites.jsx
+// screenshot (for reference): /mnt/data/Screenshot 2025-11-25 184513.png
+
 import React, { useEffect, useMemo, useState } from 'react';
 import Pagination from "./Pagination";
 
@@ -93,9 +96,9 @@ function Favourites() {
       .filter(Boolean);
     const unique = Array.from(new Set(found));
     setGenres(["All Genres", ...unique]);
-  }, [moviesState]); // runs when movies change
+  }, [moviesState]);
 
-  // Filtering by genre + search
+  // Filtering + search + sort
   const filteredMovies = useMemo(() => {
     let result = moviesState;
 
@@ -113,7 +116,6 @@ function Favourites() {
       );
     }
 
-    // apply sort if configured (numeric sorts)
     if (sortConfig.key) {
       const { key, direction } = sortConfig;
       result = [...result].sort((a, b) => {
@@ -124,13 +126,13 @@ function Favourites() {
     }
 
     return result;
-  }, [moviesState, selectedGenre, searchTerm, sortConfig]);
+  }, [moviesState, selectedGenre, searchTerm, sortConfig, genreids]);
 
-  // Maintain currentPage validity when filtered list changes or itemsPerPage changes
+  // Keep page valid whenever the visible list or items-per-page changes
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredMovies.length / itemsPerPage));
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [filteredMovies.length, itemsPerPage]); // eslint-disable-line react-hooks/exhaustive-deps
+    setCurrentPage(prev => (prev > totalPages ? totalPages : prev));
+  }, [filteredMovies, itemsPerPage]);
 
   const indexOfLastMovie = currentPage * itemsPerPage;
   const indexOfFirstMovie = indexOfLastMovie - itemsPerPage;
@@ -139,20 +141,28 @@ function Favourites() {
 
   const handleSort = (key, direction) => {
     setSortConfig({ key, direction });
-    setCurrentPage(1); // reset to first page when sorting
+    setCurrentPage(1);
   };
 
   const handleDelete = (id) => {
     setMoviesState(prev => prev.filter(m => m.id !== id));
-    // no need to explicitly adjust currentPage here; the effect above will clamp it
+    // clamp effect will run automatically and fix currentPage if needed
   };
 
+  // Use functional updates — avoids stale closures when called by child Pagination
   const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+    setCurrentPage(prev => Math.max(1, prev - 1));
   };
 
   const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  // Safe page change handler for direct page clicks from Pagination
+  const handlePageChange = (page) => {
+    const p = Number(page) || 1;
+    const clamped = Math.max(1, Math.min(totalPages, p));
+    setCurrentPage(clamped);
   };
 
   return (
@@ -183,7 +193,7 @@ function Favourites() {
           value={itemsPerPage}
           min={1}
           onChange={(e) => {
-            const v = Number(e.target.value) || 1;
+            const v = Math.max(1, Number(e.target.value) || 1);
             setItemsPerPage(v);
             setCurrentPage(1);
           }}
@@ -276,12 +286,12 @@ function Favourites() {
         </table>
       </div>
 
-      <Pagination 
+      <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
         onPrevious={handlePrevious}
         onNext={handleNext}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
       />
     </>
   );
