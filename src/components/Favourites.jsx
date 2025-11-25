@@ -147,6 +147,14 @@ function Favourites() {
     // no need to explicitly adjust currentPage here; the effect above will clamp it
   };
 
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
   return (
     <>
       <div className="mt-6 flex space-x-2 justify-center flex-wrap">
@@ -268,20 +276,13 @@ function Favourites() {
         </table>
       </div>
 
-      <div className="flex justify-center space-x-2 mt-4">
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <button
-            key={page}
-            className={`px-3 py-1 rounded ${page === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            onClick={() => setCurrentPage(page)}
-          >
-            {page}
-          </button>
-        ))}
-      </div>
-
-      {/* If your Pagination component accepts props, you can pass handlers (page, totalPages, etc.) */}
-      <Pagination />
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevious={handlePrevious}
+        onNext={handleNext}
+        onPageChange={setCurrentPage}
+      />
     </>
   );
 }
