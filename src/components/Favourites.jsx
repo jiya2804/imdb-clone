@@ -93,17 +93,19 @@ function Favourites() {
     37: "Western",
   };
 
-  const [currentPage, setCurrentPage] = useState(1);
+  // Use same naming as elsewhere for consistency
+  const [pageNum, setPageNum] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(2);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Generate Genre List
+  // Generate Genre List (safe guard if genre_ids missing)
   useEffect(() => {
     const found = moviesState
-      .map((movie) =>
-        movie.genre_ids.length ? genreids[movie.genre_ids[0]] : null
-      )
+      .map((movie) => {
+        const gid = movie.genre_ids && movie.genre_ids.length ? movie.genre_ids[0] : null;
+        return gid ? genreids[gid] : null;
+      })
       .filter(Boolean);
 
     const unique = Array.from(new Set(found));
@@ -116,46 +118,46 @@ function Favourites() {
 
     if (selectedGenre !== "All Genres") {
       result = result.filter((m) =>
-        m.genre_ids.some((id) => genreids[id] === selectedGenre)
+        Array.isArray(m.genre_ids) && m.genre_ids.some((id) => genreids[id] === selectedGenre)
       );
     }
 
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
-      result = result.filter((m) =>
-        (m.title || "").toLowerCase().includes(q)
-      );
+      result = result.filter((m) => (m.title || "").toLowerCase().includes(q));
     }
 
     if (sortConfig.key) {
       const { key, direction } = sortConfig;
-      result = [...result].sort((a, b) =>
-        direction === "asc" ? a[key] - b[key] : b[key] - a[key]
-      );
+      result = [...result].sort((a, b) => {
+        // Guard missing keys -> treat as 0
+        const av = a[key] ?? 0;
+        const bv = b[key] ?? 0;
+        return direction === "asc" ? av - bv : bv - av;
+      });
     }
 
     return result;
   }, [moviesState, selectedGenre, searchTerm, sortConfig]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredMovies.length / itemsPerPage)
-  );
-
-  const indexOfLastMovie = currentPage * itemsPerPage;
+  const totalPages = Math.max(1, Math.ceil(filteredMovies.length / itemsPerPage));
+  const indexOfLastMovie = pageNum * itemsPerPage;
   const indexOfFirstMovie = indexOfLastMovie - itemsPerPage;
-  const currentMovies = filteredMovies.slice(
-    indexOfFirstMovie,
-    indexOfLastMovie
-  );
+  const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
 
   const handleDelete = (id) => {
     setMoviesState((prev) => prev.filter((m) => m.id !== id));
+    // ensure current page is valid after deletion
+    setPageNum((p) => Math.min(p, Math.max(1, Math.ceil((filteredMovies.length - 1) / itemsPerPage))));
   };
 
   const handleSort = (key, direction) => {
     setSortConfig({ key, direction });
   };
+
+  // Pagination helpers matching Movies.jsx usage
+  const onPrev = () => setPageNum((p) => Math.max(1, p - 1));
+  const onNext = () => setPageNum((p) => Math.min(totalPages, p + 1));
 
   return (
     <>
@@ -166,12 +168,10 @@ function Favourites() {
             key={genre}
             onClick={() => {
               setSelectedGenre(genre);
-              setCurrentPage(1);
+              setPageNum(1);
             }}
             className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${
-              selectedGenre === genre
-                ? "bg-blue-500"
-                : "bg-gray-400 hover:bg-blue-400"
+              selectedGenre === genre ? "bg-blue-500" : "bg-gray-400 hover:bg-blue-400"
             }`}
           >
             {genre}
@@ -188,7 +188,7 @@ function Favourites() {
           className="border-2 py-1 px-2 text-center"
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setCurrentPage(1);
+            setPageNum(1);
           }}
         />
         <input
@@ -196,9 +196,7 @@ function Favourites() {
           min={1}
           value={itemsPerPage}
           className="border-2 py-1 px-2 text-center"
-          onChange={(e) =>
-            setItemsPerPage(Number(e.target.value) || 1)
-          }
+          onChange={(e) => setItemsPerPage(Number(e.target.value) || 1)}
         />
       </div>
 
@@ -207,9 +205,7 @@ function Favourites() {
         <table className="w-full border-collapse bg-white text-left text-sm text-gray-500">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-4 font-medium text-gray-900">
-                Name
-              </th>
+              <th className="px-6 py-4 font-medium text-gray-900">Name</th>
 
               {/* Rating Sort */}
               <th className="px-6 py-4 font-medium text-gray-900">
@@ -249,13 +245,9 @@ function Favourites() {
                 </div>
               </th>
 
-              <th className="px-6 py-4 font-medium text-gray-900">
-                Genre
-              </th>
+              <th className="px-6 py-4 font-medium text-gray-900">Genre</th>
 
-              <th className="px-6 py-4 font-medium text-gray-900">
-                Remove
-              </th>
+              <th className="px-6 py-4 font-medium text-gray-900">Remove</th>
             </tr>
           </thead>
 
@@ -265,25 +257,29 @@ function Favourites() {
                 <th className="flex items-center px-6 py-4 font-normal text-gray-900 space-x-2">
                   <img
                     className="h-[6rem] w-[10rem] object-cover"
-                    src={`https://image.tmdb.org/t/p/original/${movie.poster_path}`}
-                    alt={movie.title}
+                    src={
+                      movie.poster_path
+                        ? `https://image.tmdb.org/t/p/original/${movie.poster_path}`
+                        : "/placeholder.png"
+                    }
+                    alt={movie.title || movie.name}
                   />
-                  <div className="font-medium text-gray-700 text-sm">
-                    {movie.title}
-                  </div>
+                  <div className="font-medium text-gray-700 text-sm">{movie.title || movie.name}</div>
                 </th>
 
                 <td className="px-6 pl-12 py-4">
-                  {movie.vote_average.toFixed(2)}
+                  {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(2) : "N/A"}
                 </td>
 
                 <td className="px-6 py-4 pl-12">
-                  {movie.popularity.toFixed(2)}
+                  {typeof movie.popularity === "number" ? movie.popularity.toFixed(2) : "N/A"}
                 </td>
 
                 <td className="px-6 py-4">
                   <span className="inline-flex rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-600">
-                    {genreids[movie.genre_ids[0]]}
+                    {Array.isArray(movie.genre_ids) && movie.genre_ids.length
+                      ? genreids[movie.genre_ids[0]]
+                      : "N/A"}
                   </span>
                 </td>
 
@@ -300,10 +296,7 @@ function Favourites() {
 
             {currentMovies.length === 0 && (
               <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-8 text-center text-gray-500"
-                >
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   No movies found.
                 </td>
               </tr>
@@ -312,17 +305,7 @@ function Favourites() {
         </table>
       </div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPrevious={() =>
-          setCurrentPage((p) => Math.max(1, p - 1))
-        }
-        onNext={() =>
-          setCurrentPage((p) => Math.min(totalPages, p + 1))
-        }
-        onPageChange={setCurrentPage}
-      />
+      <Pagination pageNum={pageNum} onPrev={onPrev} onNext={onNext} />
     </>
   );
 }
