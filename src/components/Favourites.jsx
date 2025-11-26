@@ -1,75 +1,29 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Pagination from "./Pagination";
 
+// LocalStorage key
+const FAV_KEY = "favourites";
+
+// Read favourites from localStorage
+function getFavouritesFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
 function Favourites() {
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState("All Genres");
-  const [moviesState, setMoviesState] = useState([
-    {
-      adult: false,
-      backdrop_path: "/ogFIG0fNXEYRQKrpnoRJcXQNX9n.jpg",
-      id: 619930,
-      title: "Narvik",
-      original_language: "no",
-      original_title: "Kampen om Narvik",
-      poster_path: "/gU4mmINWUF294Wzi8mqRvi6peMe.jpg",
-      media_type: "movie",
-      genre_ids: [10752, 18, 36, 28],
-      popularity: 321.063,
-      release_date: "2022-12-25",
-      video: true,
-      vote_average: 7.406,
-      vote_count: 53,
-    },
-    {
-      adult: false,
-      backdrop_path: "/6RCf9jzKxyjblYV4CseayK6bcJo.jpg",
-      id: 804095,
-      title: "The Fabelmans",
-      original_language: "en",
-      original_title: "The Fabelmans",
-      poster_path: "/d2IywyOPS78vEnJvwVqkVRTiNC1.jpg",
-      media_type: "movie",
-      genre_ids: [18],
-      popularity: 163.3,
-      release_date: "2022-11-11",
-      video: false,
-      vote_average: 8.02,
-      vote_count: 561,
-    },
-    {
-      adult: false,
-      backdrop_path: "/fTLMsF3IVLMcpNqIqJRweGvVwtX.jpg",
-      id: 1035806,
-      title: "Detective Knight: Independence",
-      original_language: "en",
-      original_title: "Detective Knight: Independence",
-      poster_path: "/jrPKVQGjc3YZXm07OYMriIB47HM.jpg",
-      media_type: "movie",
-      genre_ids: [28, 53, 80],
-      popularity: 119.407,
-      release_date: "2023-01-20",
-      video: false,
-      vote_average: 6.6,
-      vote_count: 10,
-    },
-    {
-      adult: false,
-      backdrop_path: "/e782pDRAlu4BG0ahd777n8zfPzZ.jpg",
-      id: 555604,
-      title: "Guillermo del Toro's Pinocchio",
-      original_language: "en",
-      original_title: "Guillermo del Toro's Pinocchio",
-      poster_path: "/vx1u0uwxdlhV2MUzj4VlcMB0N6m.jpg",
-      media_type: "movie",
-      genre_ids: [16, 14, 18],
-      popularity: 754.642,
-      release_date: "2022-11-18",
-      video: false,
-      vote_average: 8.354,
-      vote_count: 1694,
-    },
-  ]);
+
+  // Load favourites from localStorage
+  const [moviesState, setMoviesState] = useState(getFavouritesFromStorage());
+
+  // When component loads, sync again
+  useEffect(() => {
+    setMoviesState(getFavouritesFromStorage());
+  }, []);
 
   const genreids = {
     28: "Action",
@@ -93,17 +47,17 @@ function Favourites() {
     37: "Western",
   };
 
-  // Use same naming as elsewhere for consistency
   const [pageNum, setPageNum] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(2);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Generate Genre List (safe guard if genre_ids missing)
+  // Generate Genre List
   useEffect(() => {
     const found = moviesState
       .map((movie) => {
-        const gid = movie.genre_ids && movie.genre_ids.length ? movie.genre_ids[0] : null;
+        const gid =
+          movie.genre_ids && movie.genre_ids.length ? movie.genre_ids[0] : null;
         return gid ? genreids[gid] : null;
       })
       .filter(Boolean);
@@ -118,19 +72,21 @@ function Favourites() {
 
     if (selectedGenre !== "All Genres") {
       result = result.filter((m) =>
-        Array.isArray(m.genre_ids) && m.genre_ids.some((id) => genreids[id] === selectedGenre)
+        Array.isArray(m.genre_ids) &&
+        m.genre_ids.some((id) => genreids[id] === selectedGenre)
       );
     }
 
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase();
-      result = result.filter((m) => (m.title || "").toLowerCase().includes(q));
+      result = result.filter((m) =>
+        (m.title || "").toLowerCase().includes(q)
+      );
     }
 
     if (sortConfig.key) {
       const { key, direction } = sortConfig;
       result = [...result].sort((a, b) => {
-        // Guard missing keys -> treat as 0
         const av = a[key] ?? 0;
         const bv = b[key] ?? 0;
         return direction === "asc" ? av - bv : bv - av;
@@ -140,22 +96,38 @@ function Favourites() {
     return result;
   }, [moviesState, selectedGenre, searchTerm, sortConfig]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredMovies.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredMovies.length / itemsPerPage)
+  );
+
   const indexOfLastMovie = pageNum * itemsPerPage;
   const indexOfFirstMovie = indexOfLastMovie - itemsPerPage;
-  const currentMovies = filteredMovies.slice(indexOfFirstMovie, indexOfLastMovie);
+  const currentMovies = filteredMovies.slice(
+    indexOfFirstMovie,
+    indexOfLastMovie
+  );
 
+  // Remove from favourites
   const handleDelete = (id) => {
-    setMoviesState((prev) => prev.filter((m) => m.id !== id));
-    // ensure current page is valid after deletion
-    setPageNum((p) => Math.min(p, Math.max(1, Math.ceil((filteredMovies.length - 1) / itemsPerPage))));
+    const updated = moviesState.filter((m) => m.id !== id);
+
+    // Save updated list to storage
+    localStorage.setItem(FAV_KEY, JSON.stringify(updated));
+
+    // Update component state
+    setMoviesState(updated);
+
+    // Fix page number if out of range
+    setPageNum((p) =>
+      Math.min(p, Math.max(1, Math.ceil(updated.length / itemsPerPage)))
+    );
   };
 
   const handleSort = (key, direction) => {
     setSortConfig({ key, direction });
   };
 
-  // Pagination helpers matching Movies.jsx usage
   const onPrev = () => setPageNum((p) => Math.max(1, p - 1));
   const onNext = () => setPageNum((p) => Math.min(totalPages, p + 1));
 
@@ -171,7 +143,9 @@ function Favourites() {
               setPageNum(1);
             }}
             className={`py-1 px-2 rounded-lg font-bold text-lg text-white ${
-              selectedGenre === genre ? "bg-blue-500" : "bg-gray-400 hover:bg-blue-400"
+              selectedGenre === genre
+                ? "bg-blue-500"
+                : "bg-gray-400 hover:bg-blue-400"
             }`}
           >
             {genre}
@@ -191,6 +165,7 @@ function Favourites() {
             setPageNum(1);
           }}
         />
+
         <input
           type="number"
           min={1}
@@ -207,42 +182,16 @@ function Favourites() {
             <tr>
               <th className="px-6 py-4 font-medium text-gray-900">Name</th>
 
-              {/* Rating Sort */}
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className="flex items-center">
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
-                    className="mr-2 cursor-pointer"
-                    onClick={() => handleSort("vote_average", "asc")}
-                    alt="asc"
-                  />
-                  <div>Rating</div>
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
-                    className="ml-2 cursor-pointer"
-                    onClick={() => handleSort("vote_average", "desc")}
-                    alt="desc"
-                  />
-                </div>
+                Rating
+                <span className="cursor-pointer ml-2" onClick={() => handleSort("vote_average", "asc")}>⬆️</span>
+                <span className="cursor-pointer ml-1" onClick={() => handleSort("vote_average", "desc")}>⬇️</span>
               </th>
 
-              {/* Popularity Sort */}
               <th className="px-6 py-4 font-medium text-gray-900">
-                <div className="flex items-center">
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
-                    className="mr-2 cursor-pointer"
-                    onClick={() => handleSort("popularity", "asc")}
-                    alt="asc"
-                  />
-                  <div>Popularity</div>
-                  <img
-                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
-                    className="ml-2 cursor-pointer"
-                    onClick={() => handleSort("popularity", "desc")}
-                    alt="desc"
-                  />
-                </div>
+                Popularity
+                <span className="cursor-pointer ml-2" onClick={() => handleSort("popularity", "asc")}>⬆️</span>
+                <span className="cursor-pointer ml-1" onClick={() => handleSort("popularity", "desc")}>⬇️</span>
               </th>
 
               <th className="px-6 py-4 font-medium text-gray-900">Genre</th>
@@ -264,32 +213,32 @@ function Favourites() {
                     }
                     alt={movie.title || movie.name}
                   />
-                  <div className="font-medium text-gray-700 text-sm">{movie.title || movie.name}</div>
+                  <div className="font-medium text-gray-700 text-sm">
+                    {movie.title || movie.name}
+                  </div>
                 </th>
 
-                <td className="px-6 pl-12 py-4">
-                  {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(2) : "N/A"}
+                <td className="px-6 py-4">
+                  {movie.vote_average?.toFixed(2) ?? "N/A"}
                 </td>
 
-                <td className="px-6 py-4 pl-12">
-                  {typeof movie.popularity === "number" ? movie.popularity.toFixed(2) : "N/A"}
+                <td className="px-6 py-4">
+                  {movie.popularity?.toFixed(2) ?? "N/A"}
                 </td>
 
                 <td className="px-6 py-4">
                   <span className="inline-flex rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-600">
-                    {Array.isArray(movie.genre_ids) && movie.genre_ids.length
+                    {movie.genre_ids?.length
                       ? genreids[movie.genre_ids[0]]
                       : "N/A"}
                   </span>
                 </td>
 
-                <td className="px-6 py-4">
-                  <span
-                    onClick={() => handleDelete(movie.id)}
-                    className="inline-flex text-red-600 cursor-pointer font-semibold"
-                  >
-                    Delete
-                  </span>
+                <td
+                  className="px-6 py-4 text-red-600 cursor-pointer font-semibold"
+                  onClick={() => handleDelete(movie.id)}
+                >
+                  Delete
                 </td>
               </tr>
             ))}
