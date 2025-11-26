@@ -3,11 +3,15 @@ import React, { useEffect, useState } from 'react';
 import axios from "axios";
 import Pagination from './Pagination';
 import { Oval } from "react-loader-spinner";
+import { useNavigate } from "react-router-dom"; // <-- added
+
 function Movies() {
     let [movies, setMovies] = useState([]);
     let [pageNum, setPage] = useState(1);
     let [hovered, setHovered] = useState("");
     let [favourites, setFavorites] = useState([]);
+    const navigate = useNavigate(); // <-- added
+
     /* making api request */
     useEffect(function () {
         console.log("useEffect again");
@@ -40,11 +44,13 @@ function Movies() {
     }
     /*adding / removeing emojis to fav*/
 
-    const addEmoji = (id) => {
+    const addEmoji = (e, id) => {
+        e.stopPropagation(); // <-- important so clicking emoji doesn't open detail
         const newFav = [...favourites, id];
         setFavorites(newFav);
     }
-    const removeEmoji = (id) => {
+    const removeEmoji = (e, id) => {
+        e.stopPropagation(); // <-- important
         // whichever elem -> not equal to my id 
         const filteredFav = favourites.filter(elem => {
             return elem != id;
@@ -52,6 +58,10 @@ function Movies() {
         setFavorites(filteredFav);
     }
 
+    // open detail route when card clicked
+    const openDetail = (movie) => {
+        navigate(`/movie/${movie.id}`, { state: { movie } });
+    }
 
     return (
         <div className="mt-8">
@@ -98,9 +108,13 @@ function Movies() {
                 "
                             style={{
                                 backgroundImage:
-                                    `url(
-                                    https://image.tmdb.org/t/p/original/t/p/w500/${movie.poster_path})`
+                                    // fixed TMDB path (removed duplicate '/t/p')
+                                    `url(https://image.tmdb.org/t/p/w500/${movie.poster_path})`
                             }}
+                            onClick={() => openDetail(movie)} // <-- added
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter") openDetail(movie); }}
                         >
                             <div
                                 className="p-2
@@ -116,13 +130,13 @@ function Movies() {
                                 {favourites.includes(movie.id) == false ? <div className="
                                 text-2xl
                                 "
-                                    onClick={() => { addEmoji(movie.id) }}
+                                    onClick={(e) => { addEmoji(e, movie.id) }} // <-- pass event
                                 >
                                     😍
                                 </div> : <div className="
                                 text-2xl
                                 "
-                                    onClick={() => { removeEmoji(movie.id) }}
+                                    onClick={(e) => { removeEmoji(e, movie.id) }} // <-- pass event
 
                                 >
                                     ❌
