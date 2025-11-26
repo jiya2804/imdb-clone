@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Pagination from "./Pagination";
 
-// LocalStorage key
 const FAV_KEY = "favourites";
 
-// Read favourites from localStorage
 function getFavouritesFromStorage() {
   try {
     return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
@@ -17,10 +15,10 @@ function Favourites() {
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState("All Genres");
 
-  // Load favourites from localStorage
+  // ⬇️ ONLY CHANGE #1 — movies come from localStorage, not hardcoded
   const [moviesState, setMoviesState] = useState(getFavouritesFromStorage());
 
-  // When component loads, sync again
+  // Reload favourites once on page load to sync
   useEffect(() => {
     setMoviesState(getFavouritesFromStorage());
   }, []);
@@ -52,12 +50,14 @@ function Favourites() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Generate Genre List
+  // Genres
   useEffect(() => {
     const found = moviesState
       .map((movie) => {
         const gid =
-          movie.genre_ids && movie.genre_ids.length ? movie.genre_ids[0] : null;
+          movie.genre_ids && movie.genre_ids.length
+            ? movie.genre_ids[0]
+            : null;
         return gid ? genreids[gid] : null;
       })
       .filter(Boolean);
@@ -66,7 +66,7 @@ function Favourites() {
     setGenres(["All Genres", ...unique]);
   }, [moviesState]);
 
-  // Filtering + Searching + Sorting
+  // Filtering
   const filteredMovies = useMemo(() => {
     let result = moviesState;
 
@@ -100,7 +100,6 @@ function Favourites() {
     1,
     Math.ceil(filteredMovies.length / itemsPerPage)
   );
-
   const indexOfLastMovie = pageNum * itemsPerPage;
   const indexOfFirstMovie = indexOfLastMovie - itemsPerPage;
   const currentMovies = filteredMovies.slice(
@@ -108,19 +107,22 @@ function Favourites() {
     indexOfLastMovie
   );
 
-  // Remove from favourites
+  // ⬇️ ONLY CHANGE #2 — delete also updates localStorage
   const handleDelete = (id) => {
     const updated = moviesState.filter((m) => m.id !== id);
 
-    // Save updated list to storage
+    // Update storage
     localStorage.setItem(FAV_KEY, JSON.stringify(updated));
 
-    // Update component state
+    // Update UI state
     setMoviesState(updated);
 
-    // Fix page number if out of range
+    // Fix pagination
     setPageNum((p) =>
-      Math.min(p, Math.max(1, Math.ceil(updated.length / itemsPerPage)))
+      Math.min(
+        p,
+        Math.max(1, Math.ceil(updated.length / itemsPerPage))
+      )
     );
   };
 
@@ -171,7 +173,9 @@ function Favourites() {
           min={1}
           value={itemsPerPage}
           className="border-2 py-1 px-2 text-center"
-          onChange={(e) => setItemsPerPage(Number(e.target.value) || 1)}
+          onChange={(e) =>
+            setItemsPerPage(Number(e.target.value) || 1)
+          }
         />
       </div>
 
@@ -180,23 +184,63 @@ function Favourites() {
         <table className="w-full border-collapse bg-white text-left text-sm text-gray-500">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-4 font-medium text-gray-900">Name</th>
-
               <th className="px-6 py-4 font-medium text-gray-900">
-                Rating
-                <span className="cursor-pointer ml-2" onClick={() => handleSort("vote_average", "asc")}>⬆️</span>
-                <span className="cursor-pointer ml-1" onClick={() => handleSort("vote_average", "desc")}>⬇️</span>
+                Name
+              </th>
+
+              {/* Rating sort */}
+              <th className="px-6 py-4 font-medium text-gray-900">
+                <div className="flex items-center">
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
+                    className="mr-2 cursor-pointer"
+                    onClick={() =>
+                      handleSort("vote_average", "asc")
+                    }
+                    alt="asc"
+                  />
+                  <div>Rating</div>
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
+                    className="ml-2 cursor-pointer"
+                    onClick={() =>
+                      handleSort("vote_average", "desc")
+                    }
+                    alt="desc"
+                  />
+                </div>
+              </th>
+
+              {/* Popularity sort */}
+              <th className="px-6 py-4 font-medium text-gray-900">
+                <div className="flex items-center">
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-up-arrows-those-icons-lineal-those-icons-3.png"
+                    className="mr-2 cursor-pointer"
+                    onClick={() =>
+                      handleSort("popularity", "asc")
+                    }
+                    alt="asc"
+                  />
+                  <div>Popularity</div>
+                  <img
+                    src="https://img.icons8.com/external-those-icons-lineal-those-icons/24/000000/external-down-arrows-those-icons-lineal-those-icons-4.png"
+                    className="ml-2 cursor-pointer"
+                    onClick={() =>
+                      handleSort("popularity", "desc")
+                    }
+                    alt="desc"
+                  />
+                </div>
               </th>
 
               <th className="px-6 py-4 font-medium text-gray-900">
-                Popularity
-                <span className="cursor-pointer ml-2" onClick={() => handleSort("popularity", "asc")}>⬆️</span>
-                <span className="cursor-pointer ml-1" onClick={() => handleSort("popularity", "desc")}>⬇️</span>
+                Genre
               </th>
 
-              <th className="px-6 py-4 font-medium text-gray-900">Genre</th>
-
-              <th className="px-6 py-4 font-medium text-gray-900">Remove</th>
+              <th className="px-6 py-4 font-medium text-gray-900">
+                Remove
+              </th>
             </tr>
           </thead>
 
@@ -218,34 +262,44 @@ function Favourites() {
                   </div>
                 </th>
 
-                <td className="px-6 py-4">
-                  {movie.vote_average?.toFixed(2) ?? "N/A"}
+                <td className="px-6 pl-12 py-4">
+                  {typeof movie.vote_average === "number"
+                    ? movie.vote_average.toFixed(2)
+                    : "N/A"}
                 </td>
 
-                <td className="px-6 py-4">
-                  {movie.popularity?.toFixed(2) ?? "N/A"}
+                <td className="px-6 py-4 pl-12">
+                  {typeof movie.popularity === "number"
+                    ? movie.popularity.toFixed(2)
+                    : "N/A"}
                 </td>
 
                 <td className="px-6 py-4">
                   <span className="inline-flex rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-600">
-                    {movie.genre_ids?.length
+                    {Array.isArray(movie.genre_ids) &&
+                    movie.genre_ids.length
                       ? genreids[movie.genre_ids[0]]
                       : "N/A"}
                   </span>
                 </td>
 
-                <td
-                  className="px-6 py-4 text-red-600 cursor-pointer font-semibold"
-                  onClick={() => handleDelete(movie.id)}
-                >
-                  Delete
+                <td className="px-6 py-4">
+                  <span
+                    onClick={() => handleDelete(movie.id)}
+                    className="inline-flex text-red-600 cursor-pointer font-semibold"
+                  >
+                    Delete
+                  </span>
                 </td>
               </tr>
             ))}
 
             {currentMovies.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="px-6 py-8 text-center text-gray-500"
+                >
                   No movies found.
                 </td>
               </tr>
@@ -254,7 +308,11 @@ function Favourites() {
         </table>
       </div>
 
-      <Pagination pageNum={pageNum} onPrev={onPrev} onNext={onNext} />
+      <Pagination
+        pageNum={pageNum}
+        onPrev={onPrev}
+        onNext={onNext}
+      />
     </>
   );
 }
